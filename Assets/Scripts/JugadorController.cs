@@ -1,5 +1,7 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class JugadorController : MonoBehaviour
 {
@@ -12,6 +14,11 @@ public class JugadorController : MonoBehaviour
 
     public TMP_Text textoContador, textoGanar;
 
+    private NivelController nivelController; //refencia al script NivelController
+
+    private int totalColeccionables;
+
+    public int tiempoAumentar;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -23,6 +30,12 @@ public class JugadorController : MonoBehaviour
 
         //inicio el text de ganar en blanco
         textoGanar.text = "";
+
+        nivelController = FindAnyObjectByType<NivelController>(); //busco el script NivelController en la escena
+        tiempoAumentar = 0; //tiempo que se aumentará al recoger un coleccionable
+
+        totalColeccionables = GameObject.FindGameObjectsWithTag("Coleccionable").Length; //cuento la cantidad de coleccionables en la escena
+        Debug.Log("Total de coleccionables en la escena: " + totalColeccionables);
     }
 
     // Para que se sincronice con los frames de física del motor
@@ -50,6 +63,12 @@ public class JugadorController : MonoBehaviour
             contador++;
             //actualizo el texto del contador
             setTextoContador();
+
+            if(nivelController != null)
+            {
+                //Aumento el tiempo del nivel en 2 segundos
+                nivelController.AumentarTiempo(2f);
+            }
         }
     }
     
@@ -57,9 +76,36 @@ public class JugadorController : MonoBehaviour
     void setTextoContador()
     {
         textoContador.text = "Contador: " + contador.ToString();
-        if(contador >= 12)
+        if(contador >= totalColeccionables && contador > 0) //si el contador es mayor o igual a la cantidad de coleccionables y es mayor a 0
         {
             textoGanar.text = "¡Ganaste!";
+            textoGanar.color = Color.green;
+            StartCoroutine(MostrarVictoria());
+
+        }
+    }
+
+       IEnumerator MostrarVictoria()
+    {
+        // Pausar el juego
+        Time.timeScale = 0f;
+
+        // Esperar 5 segundos en tiempo real
+        yield return new WaitForSecondsRealtime(5);
+
+        // Restaurar el tiempo y volver al menú principal
+        Time.timeScale = 1f;
+
+        int escenaActual = SceneManager.GetActiveScene().buildIndex;
+        int ultimaEscena = SceneManager.sceneCountInBuildSettings -1;
+        if (escenaActual < ultimaEscena)
+        {
+            SceneManager.LoadScene(escenaActual + 1);
+        }
+        else
+        {
+            // Ya estás en el último nivel → volver al menú principal
+            SceneManager.LoadScene("MenuPrincipal");
         }
     }
 
